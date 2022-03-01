@@ -1,0 +1,197 @@
+
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block content %}
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" /> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.8/js/select2.min.js" defer></script>
+<style>
+    .select2-container{
+        width: 50%!important;
+    }
+   
+    .pagination li {
+        background-color: #007bff;
+        color: white;
+        padding: 4px 14px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius:3px;
+    }
+
+    .pagination li a {
+        color: white;
+    }
+
+    .pagination .active,
+    .pagination .disabled {
+        color: black;
+        background-color: #494d7c52;
+        cursor: auto;
+    }    
+</style>
+
+<!-- Begin Page Content -->
+<div class="container-fluid">
+    <!------------------------ multiple tabs with their multiple panels to manage all the data in a single page  -->
+    <div class="row tab">
+        <button class="tablinks" onclick="opennavbartabs(event, 'Dashboard')" id="defaultOpen">Dashboard</button>
+       
+        <button class="tablinks" onclick="opennavbartabs(event, 'Settings')">Settings</button>
+    </div>
+
+    <!-- {% comment %} dashboard content {% endcomment %} -->
+    <div id="Dashboard" class="tabcontent">
+        <div class="container-fluid">
+            {% if messages %}
+                <ul class="messages list-unstyled" id="msg_display">
+                    {% for message in messages %}
+                        <li{% if message.tags %} class="{{ message.tags }} font-weight-bold p-3 rounded" {% endif %}>
+                            {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}Important: {% endif %}
+                            <button type="button" class="close mr-3 mb-2 text-danger font-weight-bold" onclick="dismissFunction()">&times;</button>
+                            <span class="ml-3">{{ message }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <div class="row">
+                <!-- title -->
+                <div class="col-lg-9 col-md-6">
+                    <b>Workspaces</b> <span>({{len_work}})</span>
+                </div>
+                <!-- searchbox -->
+                <div class="col-lg-3 col-md-6">
+                    <input type="text" placeholder="Search Workspaces" id="searchTheKey" class="form-control">
+                </div>
+            </div>
+            <!-- content section -->
+
+            <div class="row" style="padding-top: 20px;">
+                <div class="col-lg-12">
+                    <div class="row" id="ul_id">
+                        {% for space in workspace_view %}
+                            <div class="wrapper">
+                                <a class="box" href="{% url 'workspace' space.slug %}">
+                                    <div class="box_insidediv">
+                                        <div class="col-lg-12">
+                                            <span class="user_txticon text-capitalize">{{space.name|first}}</span><br>
+                                            <p class="text-capitalize font-weight-bold p_text_call">{{space.name}}</p>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <span>Task</span><br><span
+                                                    class="text-warning font-weight-bold">{{space.task_set.count}}</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <span>Issue</span><br><span
+                                                    class="text-danger font-weight-bold">{{space.issue_set.count}}</span>
+                                            </div>
+                                        </div>
+                                        <br>
+                                        <div class="row boxinside_div_footer">
+                                            <small>Members:</small> &nbsp;
+                                            {% for name in space.staff.all %}
+                                                <span class="member_circle text-capitalize" title="{{name.name|title}}">{{name.name|first}}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if workspace_view.has_other_pages %}
+                    <div class="col-12 text-right pull-right">
+                        <ul class="pagination justify-content-end">
+                            {% if workspace_view.has_previous %}
+                                <li><a href="?page={{ workspace_view.previous_page_number }}">&laquo;</a></li>
+                            {% else %}
+                                <li class="disabled"><span>&laquo;</span></li>
+                            {% endif %}
+                            {% for i in workspace_view.paginator.page_range %}
+                                {% if workspace_view.number == i %}
+                                    <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+                                {% else %}
+                                    <li class="to_select"><a href="?page={{ i }}">{{ i }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if workspace_view.has_next %}
+                                <li><a href="?page={{ workspace_view.next_page_number }}">&raquo;</a></li>
+                            {% else %}
+                                <li class="disabled"><span>&raquo;</span></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="Settings" class="tabcontent">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center" style="border-bottom: 1px solid #ccc;">
+                    <h5>Invite Member</h5>
+                </div>
+
+                <div class="settingtabcontent mt-3">
+                    <form method="POST" action="/">
+                        {% csrf_token %}
+                        <div class="col-12 input-group mb-2">
+                            <select class="form-control customers" name="email" required>
+                                <option value="">Please select</option>
+                                {% for member in all_staff %}
+                                    <option value="{{member.email}}">{{member.email}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-12"><small>Select a workspace</small></div>
+                            <div class="col-12 input-group">
+                                <select class="form-control customers" name="workspace" required>
+                                    <option value="">Please select</option>
+                                    {% for space in workspaces %}
+                                        <option value="{{space.id}}" class="text-capitalize">{{space.name}}</option>
+                                    {% endfor %}
+                                </select>    
+                            
+                            <span class="input-group-addon">
+                               <input type="submit" class="btn btn-primary btn-sm ml-3" value="Send Invite">
+                            </span>
+                        </div>
+                       
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script>
+    $(document).ready(function(){
+        $("#searchTheKey").on("keyup", function() {
+            var value = $(this).val().toLowerCase();
+
+            $("#ul_id div p").filter(function() {
+                if ($(this).text().toLowerCase().indexOf(value) == -1){
+                    $(this).parent().parent().parent().parent().addClass('inactive');
+                    $(this).parent().parent().parent().parent().removeClass('active');
+                    $(".inactive").hide();
+                }
+                else{
+                    $(this).parent().parent().parent().parent().addClass('active');
+                    $(this).parent().parent().parent().parent().removeClass('inactive');
+                    $('.active').show();
+                }
+            });
+        });
+    });
+</script> 
+<script>
+    $(document).ready(function(){
+        $(".customers").select2();
+    });
+</script>
+{% endblock %}
